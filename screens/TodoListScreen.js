@@ -1,13 +1,24 @@
-import React from 'react'
-import { Text, View, AsyncStorage } from 'react-native'
-import { Button, Fab, Icon } from 'native-base'
-import TodoListItem from '../components/TodoListItem';
+import React from "react";
+import {
+  View,
+  AsyncStorage,
+  ActivityIndicator,
+  Text,
+  Image
+} from "react-native";
+import { Fab, Icon } from "native-base";
+import TodoListItem from "../components/TodoListItem";
+import Header from "../components/Header";
 
 class TodoListScreen extends React.Component {
+  static navigationOptions = {
+    header: null
+  };
 
   state = {
-    todos: []
-  }
+    todos: [],
+    isLoading: true
+  };
 
   async componentDidMount() {
     this.updateState();
@@ -21,53 +32,79 @@ class TodoListScreen extends React.Component {
   }
 
   updateState = async () => {
+    this.setState({ isLoading: true });
     let todosAs = await AsyncStorage.getItem("todos");
     if (todosAs != null) {
       todosAs = JSON.parse(todosAs);
       todosAs.sort((a, b) => b.priority - a.priority);
-      this.setState({ todos: todosAs });
+      this.setState({ todos: todosAs, isLoading: false });
+    } else {
+      this.setState({ isLoading: false });
     }
-  }
+  };
 
-  updateTodo = async (updatedTodo) => {
+  updateTodo = async updatedTodo => {
     const todos = this.state.todos;
-    let indexOfUpdate = todos.findIndex((todo) => {
+    let indexOfUpdate = todos.findIndex(todo => {
       return todo.id === updatedTodo.id;
     });
     todos[indexOfUpdate] = updatedTodo;
-    this.setState({ todos })
+    this.setState({ todos });
     await AsyncStorage.setItem("todos", JSON.stringify(todos));
-  }
+  };
 
-  deleteTodo = async (updatedTodo) => {
+  deleteTodo = async updatedTodo => {
     let todos = this.state.todos;
-    todos = todos.filter((todo) => {
+    todos = todos.filter(todo => {
       return todo.id !== updatedTodo.id;
     });
-    this.setState({ todos })
+    this.setState({ todos });
     await AsyncStorage.setItem("todos", JSON.stringify(todos));
-  }
+  };
 
   render() {
-    const { todos } = this.state;
+    const { todos, isLoading } = this.state;
     return (
       <View style={{ flex: 1 }}>
-        {todos.map(todo => <TodoListItem
-          key={todo.id}
-          todo={todo}
-          updateTodo={this.updateTodo}
-          deleteTodo={this.deleteTodo} />)}
-
+        <Header />
+        {!isLoading ? (
+          <View>
+            {todos.length > 0 ? (
+              <View>
+                {todos.map(todo => (
+                  <TodoListItem
+                    key={todo.id}
+                    todo={todo}
+                    updateTodo={this.updateTodo}
+                    deleteTodo={this.deleteTodo}
+                  />
+                ))}
+              </View>
+            ) : (
+              <View style={{ justifyContent: "center", alignItems: "center" }}>
+                <Image
+                  style={{ height: 120 }}
+                  source={require("../assets/empty.png")}
+                />
+                <Text>Nenhuma tarefa adicionada ainda!</Text>
+              </View>
+            )}
+          </View>
+        ) : (
+          <View style={{ flex: 1, justifyContent: "center" }}>
+            <ActivityIndicator size="large" color="#333" />
+          </View>
+        )}
         <Fab
-          style={{ backgroundColor: '#5067FF' }}
+          style={{ backgroundColor: "#5067FF" }}
           position="bottomRight"
-          onPress={() => this.props.navigation.navigate('TodoFormScreen')}>
+          onPress={() => this.props.navigation.navigate("TodoFormScreen")}
+        >
           <Icon name="add" />
         </Fab>
       </View>
-    )
+    );
   }
-};
+}
 
 export default TodoListScreen;
-
